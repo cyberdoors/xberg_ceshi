@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: ["default", "full"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust (stable, MSVC)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      # Full feature compiles native libs (xberg-tesseract via cmake). Ensure
+      # cl.exe / link.exe (MSVC toolchain) and cmake are on PATH for the `cc`
+      # and `cmake` build scripts.
+      - name: Set up MSVC environment
+        uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: latest
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ matrix.feature }}-${{ hashFiles('Cargo.lock') }}
+
+      - name: Build (default features)
+        if: matrix.feature == 'default'
+        run: cargo build --message-format short
+
+      - name: Build (full features)
+        if: matrix.feature == 'full'
+        # Expected: linker LNK2038 RuntimeLibrary mismatch
+        #   MT_StaticRelease  (libesaxx_rs / esaxx.o)
+        #   MD_DynamicRelease (libxberg_tesseract / capi.obj)
+        # Left failing on purpose so the run's red status records whether an
+        # unmodified crate pull reproduces on a clean Windows runner.
+        run: cargo build --features xberg-full

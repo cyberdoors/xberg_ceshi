@@ -1,0 +1,12 @@
+[package]
+name = "xberg_ceshi"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+xberg = { version = "1", default-features = false, features = ["tokio-runtime"] }
+tokio = { version = "1", features = ["rt", "macros"] }
+
+[features]
+default = []
+xberg-full = ["xberg/full"]
