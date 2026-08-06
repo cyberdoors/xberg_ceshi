@@ -44,6 +44,11 @@ jobs:
 
       - name: Build (full features)
         if: matrix.feature == 'full'
+        # Uses xberg/full-no-heic (our xberg-full feature): full-heic pulls
+        # libheif-sys which requires a local Vcpkg tree, unavailable on runners.
+        # full-no-heic still includes the tokenizers -> esaxx-rs chain and
+        # xberg-tesseract, so it reproduces the target error while avoiding vcpkg.
+        #
         # Expected: linker LNK2038 RuntimeLibrary mismatch
         #   MT_StaticRelease  (libesaxx_rs / esaxx.o)
         #   MD_DynamicRelease (libxberg_tesseract / capi.obj)

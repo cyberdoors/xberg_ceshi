@@ -9,4 +9,4 @@ tokio = { version = "1", features = ["rt", "macros"] }
 
 [features]
 default = []
-xberg-full = ["xberg/full"]
+xberg-full = ["xberg/full-no-heic"]
