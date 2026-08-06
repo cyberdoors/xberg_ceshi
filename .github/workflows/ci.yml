@@ -42,6 +42,12 @@ jobs:
         if: matrix.feature == 'default'
         run: cargo build --message-format short
 
+      - name: Install vcpkg zlib (full only)
+        if: matrix.feature == 'full'
+        run: |
+          $env:VCPKG_ROOT = "C:\vcpkg"
+          & "C:\vcpkg\vcpkg.exe" install zlib:x64-windows-static-md
+
       - name: Build (full features)
         if: matrix.feature == 'full'
         # Uses xberg/full-no-heic (our xberg-full feature): full-heic pulls
@@ -54,4 +60,6 @@ jobs:
         #   MD_DynamicRelease (libxberg_tesseract / capi.obj)
         # Left failing on purpose so the run's red status records whether an
         # unmodified crate pull reproduces on a clean Windows runner.
+        env:
+          LIB: C:\vcpkg\installed\x64-windows-static-md\lib;$(LIB)
         run: cargo build --features xberg-full
