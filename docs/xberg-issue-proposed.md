@@ -9,7 +9,7 @@
 
 ## Description
 
-Using xberg with the `full` (or `full-no-heic`) feature on **Windows / MSVC** fails at the final link step with `LNK2038`:
+Using xberg with the `full` feature on **Windows / MSVC** fails at the final link step with `LNK2038`:
 
 ```
 error: linking with link.exe failed
@@ -18,24 +18,26 @@ value 'MT_StaticRelease' doesn't match value 'MD_DynamicRelease' in libxberg_tes
 LINK : fatal error LNK1319: 1 mismatches detected
 ```
 
-Default features (`tokio-runtime + simd-utf8`) pass. The failure appears as soon as the `tokenizers` -> `esaxx-rs` chain is enabled, and reproduces on a fresh GitHub Actions `windows-latest` runner (clean `target/`), so it is not environment- or cache-related.
+Default features (`tokio-runtime + simd-utf8`) pass. The failure appears as soon as the `tokenizers` -> `esaxx-rs` chain is enabled, and is not environment- or cache-related (reproduces on a fresh GitHub Actions `windows-latest` runner with a clean `target/`).
+
+Note on `full` vs `full-no-heic`: both features enable the responsible `static-embeddings` -> model2vec-rs chain and hit the same `LNK2038`. The CI repro uses `full-no-heic` only to skip the unrelated `heic` / libheif-sys vcpkg prerequisite that would otherwise block the build before the linker CRT check; the error itself is identical.
 
 ## Steps to reproduce
 
 ```bash
 cargo new repro && cd repro
-cargo add xberg --features full-no-heic
-cargo build        # x86_64-pc-windows-msvc
+cargo add xberg --features full          # also reproduced with full-no-heic
+cargo build                             # x86_64-pc-windows-msvc
 ```
 
-(Using `--features full` also hits it; see the dependency chain below.)
+(If the `heic`/libheif-sys vcpkg dependency is not available on the build host, substitute `full-no-heic` in the command above — it reaches the same `LNK2038`.)
 
 ## Relevant files and configuration
 
 Dependency chain enabling the offending C++ (from `cargo tree -e features -i esaxx-rs`):
 
 ```
-xberg/full -> static-embeddings -> model2vec-rs (feature "fancy-regex")
+xberg/full (or full-no-heic) -> static-embeddings -> model2vec-rs (feature "fancy-regex")
   -> tokenizers 0.21.4 (feature "esaxx_fast")
     -> esaxx-rs 0.1.10 (feature "cpp")
       -> build.rs .static_crt(true)   # forces /MT static CRT, conflicts with Rust /MD
